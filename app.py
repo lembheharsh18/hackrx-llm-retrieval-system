@@ -9,6 +9,7 @@ import io
 import time
 import requests
 import asyncio
+import gc # Import garbage collector
 from typing import List, Dict, Any
 from urllib.parse import urlparse
 import numpy as np
@@ -64,7 +65,6 @@ def get_embedding_model():
     global EMBEDDING_MODEL
     if EMBEDDING_MODEL is None:
         print("🧠 Lazily loading embedding model (this will happen only once)...")
-        # FINAL OPTIMIZATION: Using an even smaller and faster model for max performance.
         EMBEDDING_MODEL = SentenceTransformer('paraphrase-MiniLM-L3-v2')
         print("✅ Embedding model loaded into memory.")
     return EMBEDDING_MODEL
@@ -77,7 +77,7 @@ DOCUMENT_STORE = []
 app = FastAPI(
     title="Final Optimized HackRx LLM Query Retrieval System",
     description="A generalized RAG system optimized for speed and stability.",
-    version="5.0.0" # Final competition version
+    version="5.1.0" # Final competition version
 )
 security = HTTPBearer()
 
@@ -110,7 +110,7 @@ class DocumentProcessor:
     
     def download_document(self, url: str) -> bytes:
         try:
-            response = requests.get(url, timeout=25) # 25-second timeout
+            response = requests.get(url, timeout=25)
             response.raise_for_status()
             return response.content
         except requests.exceptions.RequestException as e:
@@ -170,7 +170,8 @@ class SemanticSearchService:
         self.faiss_index = FAISS_INDEX
         self.document_store = DOCUMENT_STORE
     
-    def embed_and_index(self, chunks: List[DocumentChunk], batch_size: int = 16) -> None:
+    def embed_and_index(self, chunks: List[DocumentChunk], batch_size: int = 8) -> None:
+        """Embeds chunks in very small batches to prevent memory overload."""
         if not chunks: return
         self.faiss_index.reset(); self.document_store.clear()
         
@@ -275,6 +276,10 @@ async def run_submission(request: QueryRequest, _: str = Depends(verify_token)):
         search_service.embed_and_index(chunks)
         print(f"   - Embedding & Indexing took {time.time() - start_time:.2f}s")
         
+        # Manually trigger garbage collection to free up memory before LLM calls
+        gc.collect()
+        print("   - Garbage collection triggered.")
+        
         # Step 4: Concurrently process all questions
         start_time = time.time()
         answers = await llm_service.process_all_queries(request.questions, search_service)
@@ -289,7 +294,7 @@ async def run_submission(request: QueryRequest, _: str = Depends(verify_token)):
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "version": "5.0.0", "model": "gemini-1.5-flash"}
+    return {"status": "healthy", "version": "5.1.0", "model": "gemini-1.5-flash"}
 
 @app.get("/")
 async def root():
