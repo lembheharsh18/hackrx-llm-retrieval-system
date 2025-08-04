@@ -65,7 +65,7 @@ def get_embedding_model():
     global EMBEDDING_MODEL
     if EMBEDDING_MODEL is None:
         print("🧠 Lazily loading embedding model (this will happen only once)...")
-        EMBEDDING_MODEL = SentenceTransformer('paraphrase-MiniLM-L3-v2')
+        EMBEDDING_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
         print("✅ Embedding model loaded into memory.")
     return EMBEDDING_MODEL
 
