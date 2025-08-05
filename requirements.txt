@@ -1,14 +1,10 @@
-setuptools
-wheel
 fastapi
-uvicorn[standard]
+uvicorn
 python-dotenv
 requests
 PyPDF2
 python-docx
-gunicorn
 google-generativeai
 sentence-transformers
 faiss-cpu
 numpy
-pydantic
